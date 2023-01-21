@@ -1,0 +1,33 @@
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@host:port/dbname'
+db = SQLAlchemy(app)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    likes_count = db.Column(db.Integer, default=0)
+
+class Like(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+
+@app.route('/messages', methods=['POST'])
+def post_message():
+    data = request.get_json()
+    message = Message(text=data['text'])
+    db.session.add(message)
+    db.session.commit()
+    return jsonify({'message': message.text, 'id': message.id})
+
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    messages = Message.query.order_by(Message.created_at.desc()).all()
+    return jsonify([{'message': message.text, 'id': message.id} for message in messages])
+
+@app.route('/messages/<int:message_id>/like', methods=['POST'])
+def like_message(message
